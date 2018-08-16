@@ -1,46 +1,73 @@
 const path = require('path');
 const http = require('http');
 const express = require('express');
-const {isRealString} = require('./utils/validation')
+const socketIO = require('socket.io');
 
 const {generateMessage, generateLocationMessage} = require('./utils/message');
+const {isRealString} = require('./utils/validation');
+const {Users} = require('./utils/users');
+
 const publicPath = path.join(__dirname, '../public');
 const port = process.env.PORT || 3000;
-const app = express();
+var app = express();
 var server = http.createServer(app);
-const io = require('socket.io').listen(server);
+var io = socketIO(server);
+var users = new Users();
 
 app.use(express.static(publicPath));
 
-io.on('connection', (socket) => {
+io.on('connection', (socket) => {
+  console.log('New user connected');
 
+  // On Join, many things to do
+  socket.on('join', (params, callback) => {
+    // Check given params
+    if (!isRealString(params.name) || !isRealString(params.room)) {
+      return callback('Name and room name are required.');
+    }
 
-    socket.on('join', (params, callback ) => {
-        if(!isRealString(params.name) || !isRealString(params.room)) {
-            callback('Username and room name are required');
-        }
-        socket.join(params.room);
-        
-        socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat app'));
+    // Connect user to the room
+    socket.join(params.room);
 
-        socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', `${params.name} has joined`));
-        callback();
-    });
+    // Remove it if it already exists
+    users.removeUser(socket.id);
 
-    socket.on('createMessage', (message, callback) => {
-        io.emit('newMessage', generateMessage(message.from, message.text));
-        callback();
-    });
+    // Create the user
+    users.addUser(socket.id, params.name, params.room);
 
-    socket.on('createLocationMessage', (coords) => {
-        io.emit('newLocationMessage', generateLocationMessage('User', `${coords.latitude}`, `${coords.longitude}`))
-    });
+    // Update users list
+    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
-    socket.on('disconnect', () => {
-        console.log('User was disconnected');
-    });
+    // Send a welcome message
+    socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat app'));
+    socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', `${params.name} has joined.`));
+    callback();
+  });
+
+  // On Message, should send a message
+  socket.on('createMessage', (message, callback) => {
+    console.log('createMessage', message);
+    io.emit('newMessage', generateMessage(message.from, message.text));
+    callback();
+  });
+
+  // On Location Message, should send a location message containing a link
+  socket.on('createLocationMessage', (coords) => {
+    io.emit('newLocationMessage', generateLocationMessage('Admin', coords.latitude, coords.longitude));
+  });
+
+  // On Disconnect, should remove the users of the lists
+  socket.on('disconnect', () => {
+    var user = users.removeUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit('updateUserList', users.getUserList(user.room));
+      io.to(user.room).emit('newMessage', generateMessage('Admin', `${user.name} has left.`));
+    }
+  });
 });
 
+// Start the server on the given port
 server.listen(port, () => {
-    console.log(`Server is up on port ${port}`);
-}); 
+  console.log(`Server is up on ${port}`);
+});
