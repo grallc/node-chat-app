@@ -26,8 +26,13 @@ io.on('connection', (socket) => {
       return callback('Name and room name are required.');
     }
 
+    // Room name is case insensitive 
+    params.room = params.room.toLowerCase();
+
+
     // Connect user to the room
     socket.join(params.room);
+
 
     // Remove it if it already exists
     users.removeUser(socket.id);
