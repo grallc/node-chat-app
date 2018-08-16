@@ -35,6 +35,13 @@ class Users {
 
     return namesArray; // Return their name, into an array
   }
+  
+  // Return if the username exists in the room
+  isUserOnline(name, room) {
+    return this.getUserList(room).includes(name);
+  }
+
+
 }
 
 module.exports = {Users};

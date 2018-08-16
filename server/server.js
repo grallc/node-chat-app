@@ -30,6 +30,11 @@ io.on('connection', (socket) => {
     params.room = params.room.toLowerCase();
 
 
+    // Kick the user if the username is already in use in the room
+    if(users.isUserOnline(params.name.toLowerCase(), params.room)){
+      return callback('This username is already in use in this room !');
+    }
+
     // Connect user to the room
     socket.join(params.room);
 
@@ -43,6 +48,7 @@ io.on('connection', (socket) => {
     // Update users list
     io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
+
     // Send a welcome message
     socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat app'));
     socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', `${params.name} has joined.`));
@@ -53,6 +59,7 @@ io.on('connection', (socket) => {
   socket.on('createMessage', (message, callback) => {
 
     var user = users.getUser(socket.id);
+
 
     if(user && isRealString(message.text)) {
         io.to(user.room).emit('newMessage', generateMessage(user.name, message.text));

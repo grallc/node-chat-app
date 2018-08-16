@@ -1,5 +1,6 @@
 var socket = io();
 
+// Set the chat always to the bottom
 function scrollToBottom () {
   // Selectors
   var messages = jQuery('#messages');
