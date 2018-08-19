@@ -50,7 +50,7 @@ describe('Users', () => {
     var userId = '99';
     var user = users.removeUser(userId);
 
-    expect(user).toNotExist();
+    expect(user).not.toBeTruthy();
     expect(users.users.length).toBe(3);
   });
 
@@ -67,7 +67,7 @@ describe('Users', () => {
     var userId = '99';
     var user = users.getUser(userId);
 
-    expect(user).toNotExist();
+    expect(user).not.toBeTruthy();
   });
 
   // Test users retrieving - users should be "Corentin" and "Malo"

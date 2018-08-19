@@ -48,6 +48,8 @@ io.on('connection', (socket) => {
     // Update users list
     io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
+    console.log(io.sockets.adapter.rooms[params.room].sockets);
+
 
     // Send a welcome message
     socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat app'));
